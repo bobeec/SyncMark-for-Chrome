@@ -1,168 +1,236 @@
-// Bookmark Manager - Frontend JavaScript
-class BookmarkManager {
+/**
+ * SyncMark for Chrome - Main Application
+ * Frontend JavaScript for bookmark management
+ */
+
+class SyncMarkApp {
   constructor() {
-    this.sessionToken = localStorage.getItem('session_token')
+    this.sessionToken = localStorage.getItem('syncmark_session_token')
     this.currentUser = null
     this.currentFolder = null
     this.bookmarks = []
     this.folders = []
+    this.apiUrl = '/api'
     
-    this.init()
-  }
-
-  async init() {
-    this.setupEventListeners()
-    
-    // Check if user is logged in
-    if (this.sessionToken) {
-      const isValid = await this.verifySession()
-      if (isValid) {
-        this.showLoggedInState()
-        await this.loadData()
-      } else {
-        this.logout()
-      }
+    // Wait for i18n to initialize
+    if (window.i18n) {
+      this.init()
+    } else {
+      window.addEventListener('DOMContentLoaded', () => {
+        setTimeout(() => this.init(), 100) // Give i18n time to load
+      })
     }
   }
 
+  async init() {
+    console.log('Initializing SyncMark for Chrome...')
+    
+    // Set up event listeners
+    this.setupEventListeners()
+    
+    // Check authentication
+    if (this.sessionToken) {
+      await this.verifySession()
+    }
+    
+    // Load initial data if authenticated
+    if (this.currentUser) {
+      await this.loadData()
+    }
+    
+    console.log('SyncMark for Chrome initialized')
+  }
+
   setupEventListeners() {
-    // Auth buttons
-    document.getElementById('login-btn')?.addEventListener('click', () => this.login())
-    document.getElementById('logout-btn')?.addEventListener('click', () => this.logout())
+    // Authentication
+    const loginBtn = document.getElementById('login-btn')
+    const logoutBtn = document.getElementById('logout-btn')
     
+    if (loginBtn) {
+      loginBtn.addEventListener('click', () => this.handleLogin())
+    }
+    
+    if (logoutBtn) {
+      logoutBtn.addEventListener('click', () => this.handleLogout())
+    }
+
     // Action buttons
-    document.getElementById('add-bookmark-btn')?.addEventListener('click', () => this.showAddBookmarkModal())
-    document.getElementById('add-folder-btn')?.addEventListener('click', () => this.showAddFolderModal())
-    document.getElementById('sync-btn')?.addEventListener('click', () => this.syncData())
-    document.getElementById('export-btn')?.addEventListener('click', () => this.exportBookmarks())
+    const addBookmarkBtn = document.getElementById('add-bookmark-btn')
+    const addFolderBtn = document.getElementById('add-folder-btn')
+    const syncBtn = document.getElementById('sync-btn')
+    const exportBtn = document.getElementById('export-btn')
     
+    if (addBookmarkBtn) {
+      addBookmarkBtn.addEventListener('click', () => this.showAddBookmarkModal())
+    }
+    
+    if (addFolderBtn) {
+      addFolderBtn.addEventListener('click', () => this.showAddFolderModal())
+    }
+    
+    if (syncBtn) {
+      syncBtn.addEventListener('click', () => this.performSync())
+    }
+    
+    if (exportBtn) {
+      exportBtn.addEventListener('click', () => this.exportData())
+    }
+
     // Search and sort
-    document.getElementById('search-input')?.addEventListener('input', (e) => this.searchBookmarks(e.target.value))
-    document.getElementById('sort-select')?.addEventListener('change', (e) => this.sortBookmarks(e.target.value))
+    const searchInput = document.getElementById('search-input')
+    const sortSelect = document.getElementById('sort-select')
     
+    if (searchInput) {
+      searchInput.addEventListener('input', (e) => this.handleSearch(e.target.value))
+    }
+    
+    if (sortSelect) {
+      sortSelect.addEventListener('change', (e) => this.handleSort(e.target.value))
+    }
+
     // Extension notice
-    document.getElementById('close-notice')?.addEventListener('click', () => {
-      document.getElementById('extension-notice').style.display = 'none'
-    })
-    document.getElementById('install-extension-btn')?.addEventListener('click', () => {
-      alert('Chrome拡張機能のインストール方法:\\n1. extension/build/フォルダをzip圧縮\\n2. chrome://extensions/ で「デベロッパーモード」を有効\\n3. 「パッケージ化されていない拡張機能を読み込む」をクリック')
+    const closeNotice = document.getElementById('close-notice')
+    const installExtensionBtn = document.getElementById('install-extension-btn')
+    
+    if (closeNotice) {
+      closeNotice.addEventListener('click', () => this.hideExtensionNotice())
+    }
+    
+    if (installExtensionBtn) {
+      installExtensionBtn.addEventListener('click', () => this.openExtensionStore())
+    }
+
+    // Language change event
+    window.addEventListener('languageChanged', (e) => {
+      console.log('Language changed to:', e.detail.language)
+      this.updateDynamicContent()
     })
   }
 
-  // Authentication
-  async login() {
+  // Authentication methods
+  async handleLogin() {
     try {
-      // Mock login for MVP - replace with real Google OAuth
-      const response = await fetch('/api/auth/google', {
+      // For MVP, use mock authentication
+      const response = await fetch(`${this.apiUrl}/auth/google`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({ token: 'mock-token' })
       })
 
       const result = await response.json()
-      
+
       if (result.success) {
         this.sessionToken = result.session_token
         this.currentUser = result.user
-        localStorage.setItem('session_token', this.sessionToken)
+        localStorage.setItem('syncmark_session_token', this.sessionToken)
         
-        this.showLoggedInState()
+        this.updateAuthUI()
         await this.loadData()
-        this.showMessage('ログインしました', 'success')
+        this.showMessage('auth.loginSuccess', 'success')
       } else {
-        this.showMessage('ログインに失敗しました: ' + result.error, 'error')
+        this.showMessage('messages.error', 'error')
       }
     } catch (error) {
       console.error('Login error:', error)
-      this.showMessage('ログインエラーが発生しました', 'error')
+      this.showMessage('messages.networkError', 'error')
+    }
+  }
+
+  async handleLogout() {
+    try {
+      if (this.sessionToken) {
+        await fetch(`${this.apiUrl}/auth/logout`, {
+          method: 'POST',
+          headers: {
+            'X-Session-Token': this.sessionToken
+          }
+        })
+      }
+
+      this.sessionToken = null
+      this.currentUser = null
+      localStorage.removeItem('syncmark_session_token')
+      
+      this.updateAuthUI()
+      this.clearData()
+      this.showMessage('auth.logoutSuccess', 'success')
+    } catch (error) {
+      console.error('Logout error:', error)
     }
   }
 
   async verifySession() {
     try {
-      const response = await fetch('/api/auth/verify', {
+      const response = await fetch(`${this.apiUrl}/auth/verify`, {
         headers: {
           'X-Session-Token': this.sessionToken
         }
       })
 
       const result = await response.json()
-      
+
       if (result.success) {
         this.currentUser = result.user
+        this.updateAuthUI()
         return true
+      } else {
+        this.sessionToken = null
+        localStorage.removeItem('syncmark_session_token')
+        return false
       }
-      return false
     } catch (error) {
-      console.error('Verify session error:', error)
+      console.error('Session verification error:', error)
       return false
     }
   }
 
-  logout() {
-    this.sessionToken = null
-    this.currentUser = null
-    localStorage.removeItem('session_token')
-    
-    // Reset UI
-    document.getElementById('login-btn').classList.remove('hidden')
-    document.getElementById('user-info').classList.add('hidden')
-    
-    // Clear data
-    this.bookmarks = []
-    this.folders = []
-    this.updateBookmarksDisplay()
-    this.updateFoldersDisplay()
-    this.updateStatistics()
-    
-    this.showMessage('ログアウトしました', 'info')
-  }
+  updateAuthUI() {
+    const loginBtn = document.getElementById('login-btn')
+    const userInfo = document.getElementById('user-info')
+    const userAvatar = document.getElementById('user-avatar')
+    const userName = document.getElementById('user-name')
 
-  showLoggedInState() {
-    document.getElementById('login-btn').classList.add('hidden')
-    document.getElementById('user-info').classList.remove('hidden')
-    
     if (this.currentUser) {
-      document.getElementById('user-name').textContent = this.currentUser.name
-      if (this.currentUser.avatar_url) {
-        document.getElementById('user-avatar').src = this.currentUser.avatar_url
-      }
+      if (loginBtn) loginBtn.classList.add('hidden')
+      if (userInfo) userInfo.classList.remove('hidden')
+      
+      if (userAvatar) userAvatar.src = this.currentUser.avatar_url || 'https://via.placeholder.com/32'
+      if (userName) userName.textContent = this.currentUser.name
+    } else {
+      if (loginBtn) loginBtn.classList.remove('hidden')
+      if (userInfo) userInfo.classList.add('hidden')
     }
   }
 
-  // Data loading
+  // Data loading methods
   async loadData() {
-    try {
-      await Promise.all([
-        this.loadBookmarks(),
-        this.loadFolders()
-      ])
-      this.updateStatistics()
-    } catch (error) {
-      console.error('Load data error:', error)
-      this.showMessage('データの読み込みに失敗しました', 'error')
-    }
+    await Promise.all([
+      this.loadBookmarks(),
+      this.loadFolders(),
+      this.loadStats()
+    ])
   }
 
-  async loadBookmarks(folderId = null, search = '') {
+  async loadBookmarks(folderId = null, search = '', sort = 'position') {
     try {
       const params = new URLSearchParams()
       if (folderId) params.set('folder_id', folderId)
       if (search) params.set('search', search)
+      if (sort) params.set('sort', sort)
 
-      const response = await fetch('/api/bookmarks?' + params.toString(), {
+      const response = await fetch(`${this.apiUrl}/bookmarks?${params}`, {
         headers: {
           'X-Session-Token': this.sessionToken
         }
       })
 
       const result = await response.json()
-      
+
       if (result.success) {
         this.bookmarks = result.bookmarks
-        this.updateBookmarksDisplay()
+        this.renderBookmarks()
       }
     } catch (error) {
       console.error('Load bookmarks error:', error)
@@ -171,77 +239,106 @@ class BookmarkManager {
 
   async loadFolders() {
     try {
-      const response = await fetch('/api/folders', {
+      const response = await fetch(`${this.apiUrl}/folders`, {
         headers: {
           'X-Session-Token': this.sessionToken
         }
       })
 
       const result = await response.json()
-      
+
       if (result.success) {
         this.folders = result.folders
-        this.updateFoldersDisplay()
+        this.renderFolders()
       }
     } catch (error) {
       console.error('Load folders error:', error)
     }
   }
 
-  // UI Updates
-  updateBookmarksDisplay() {
+  async loadStats() {
+    try {
+      const [bookmarkStats, folderStats, syncStatus] = await Promise.all([
+        fetch(`${this.apiUrl}/bookmarks/stats/summary`, {
+          headers: { 'X-Session-Token': this.sessionToken }
+        }),
+        fetch(`${this.apiUrl}/folders/stats/summary`, {
+          headers: { 'X-Session-Token': this.sessionToken }
+        }),
+        fetch(`${this.apiUrl}/sync/status`, {
+          headers: { 'X-Session-Token': this.sessionToken }
+        })
+      ])
+
+      const [bookmarkResult, folderResult, syncResult] = await Promise.all([
+        bookmarkStats.json(),
+        folderStats.json(),
+        syncStatus.json()
+      ])
+
+      this.updateStats(bookmarkResult, folderResult, syncResult)
+    } catch (error) {
+      console.error('Load stats error:', error)
+    }
+  }
+
+  // Rendering methods
+  renderBookmarks() {
     const container = document.getElementById('bookmarks-container')
-    
+    if (!container) return
+
     if (this.bookmarks.length === 0) {
       container.innerHTML = `
         <div class="text-gray-500 text-center py-8">
           <i class="fas fa-bookmark text-4xl mb-4"></i>
-          <p class="text-lg">ブックマークがありません</p>
-          <p class="text-sm mt-2">「ブックマーク追加」ボタンから追加してください</p>
+          <p class="text-lg" data-i18n="bookmarks.noBookmarks">No bookmarks found</p>
+          <p class="text-sm mt-2" data-i18n="bookmarks.noBookmarksDesc">Click "Add Bookmark" to get started</p>
         </div>
       `
+      // Re-apply i18n to new elements
+      if (window.i18n) {
+        window.i18n.updatePageContent()
+      }
       return
     }
 
-    const bookmarksHtml = this.bookmarks.map(bookmark => `
-      <div class="bookmark-item border-b border-gray-100 p-4 hover:bg-gray-50" data-id="${bookmark.id}">
-        <div class="flex items-center justify-between">
-          <div class="flex items-start space-x-3 flex-1">
-            <img src="${bookmark.favicon_url || 'https://via.placeholder.com/16'}" 
-                 alt="favicon" class="w-4 h-4 mt-1 flex-shrink-0">
-            <div class="flex-1 min-w-0">
-              <div class="flex items-center space-x-2">
-                <a href="${bookmark.url}" target="_blank" 
-                   class="text-blue-600 hover:text-blue-800 font-medium truncate"
-                   onclick="bookmarkManager.recordVisit(${bookmark.id})">
-                  ${bookmark.title}
-                </a>
-                ${bookmark.is_favorite ? '<i class="fas fa-star text-yellow-500 text-sm"></i>' : ''}
+    const bookmarksHTML = this.bookmarks.map(bookmark => `
+      <div class="bookmark-item border-b pb-4 mb-4 hover:bg-gray-50 p-3 rounded" data-bookmark-id="${bookmark.id}">
+        <div class="flex items-start justify-between">
+          <div class="flex-1">
+            <div class="flex items-center space-x-2 mb-2">
+              <img src="https://www.google.com/s2/favicons?domain=${new URL(bookmark.url).hostname}" 
+                   class="w-4 h-4" alt="favicon" onerror="this.src='data:image/svg+xml,<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\" fill=\"%23666\" viewBox=\"0 0 16 16\"><path d=\"M8 0C3.58 0 0 3.58 0 8s3.58 8 8 8 8-3.58 8-8-3.58-8-8-8zM8 14c-3.31 0-6-2.69-6-6s2.69-6 6-6 6 2.69 6 6-2.69 6-6 6z\"/></svg>'">
+              <a href="${bookmark.url}" target="_blank" class="text-blue-600 hover:text-blue-800 font-medium">
+                ${this.escapeHtml(bookmark.title)}
+              </a>
+              ${bookmark.is_favorite ? '<i class="fas fa-star text-yellow-500"></i>' : ''}
+            </div>
+            
+            <p class="text-gray-600 text-sm truncate">${bookmark.url}</p>
+            
+            ${bookmark.description ? `<p class="text-gray-500 text-sm mt-1">${this.escapeHtml(bookmark.description)}</p>` : ''}
+            
+            ${bookmark.tags && bookmark.tags.length > 0 ? `
+              <div class="flex flex-wrap gap-1 mt-2">
+                ${bookmark.tags.map(tag => `
+                  <span class="bg-gray-100 text-gray-700 text-xs px-2 py-1 rounded">${this.escapeHtml(tag)}</span>
+                `).join('')}
               </div>
-              <p class="text-sm text-gray-600 truncate mt-1">${bookmark.url}</p>
-              ${bookmark.description ? `<p class="text-sm text-gray-500 mt-1">${bookmark.description}</p>` : ''}
-              ${bookmark.tags && bookmark.tags.length > 0 ? `
-                <div class="flex flex-wrap gap-1 mt-2">
-                  ${bookmark.tags.map(tag => `<span class="bg-gray-100 text-gray-600 px-2 py-1 rounded-full text-xs">${tag}</span>`).join('')}
-                </div>
-              ` : ''}
-              <div class="text-xs text-gray-400 mt-2">
-                <span>アクセス数: ${bookmark.visit_count}</span>
-                ${bookmark.last_visited_at ? ` • 最終アクセス: ${new Date(bookmark.last_visited_at).toLocaleDateString('ja-JP')}` : ''}
-              </div>
+            ` : ''}
+            
+            <div class="flex items-center text-xs text-gray-400 mt-2 space-x-4">
+              ${bookmark.visit_count > 0 ? `<span><i class="fas fa-eye"></i> ${bookmark.visit_count}</span>` : ''}
+              ${bookmark.last_visited_at ? `<span><i class="fas fa-clock"></i> ${this.formatDate(bookmark.last_visited_at)}</span>` : ''}
+              <span><i class="fas fa-calendar"></i> ${this.formatDate(bookmark.created_at)}</span>
             </div>
           </div>
-          <div class="flex items-center space-x-2">
-            <button onclick="bookmarkManager.toggleFavorite(${bookmark.id}, ${!bookmark.is_favorite})" 
-                    class="text-gray-400 hover:text-yellow-500" title="お気に入り">
-              <i class="fas fa-star"></i>
-            </button>
-            <button onclick="bookmarkManager.editBookmark(${bookmark.id})" 
-                    class="text-gray-400 hover:text-blue-500" title="編集">
+          
+          <div class="flex items-center space-x-2 ml-4">
+            <button onclick="app.editBookmark(${bookmark.id})" class="text-gray-500 hover:text-blue-600">
               <i class="fas fa-edit"></i>
             </button>
-            <button onclick="bookmarkManager.deleteBookmark(${bookmark.id})" 
-                    class="text-gray-400 hover:text-red-500" title="削除">
+            <button onclick="app.deleteBookmark(${bookmark.id})" class="text-gray-500 hover:text-red-600">
               <i class="fas fa-trash"></i>
             </button>
           </div>
@@ -249,342 +346,239 @@ class BookmarkManager {
       </div>
     `).join('')
 
-    container.innerHTML = bookmarksHtml
+    container.innerHTML = bookmarksHTML
   }
 
-  updateFoldersDisplay() {
+  renderFolders() {
     const container = document.getElementById('folder-tree')
-    
+    if (!container) return
+
     if (this.folders.length === 0) {
       container.innerHTML = `
         <div class="text-gray-500 text-center py-4">
           <i class="fas fa-folder-open text-3xl mb-2"></i>
-          <p>フォルダなし</p>
+          <p data-i18n="folders.noFolders">No folders</p>
         </div>
       `
+      // Re-apply i18n to new elements
+      if (window.i18n) {
+        window.i18n.updatePageContent()
+      }
       return
     }
 
-    const renderFolder = (folder, level = 0) => {
-      const indent = 'pl-' + (level * 4)
-      let html = `
-        <div class="folder-item ${indent} py-2 cursor-pointer hover:bg-gray-50 rounded" 
-             onclick="bookmarkManager.selectFolder(${folder.id})">
-          <div class="flex items-center justify-between">
+    const renderFolderTree = (folders, level = 0) => {
+      return folders.map(folder => `
+        <div class="folder-item" data-folder-id="${folder.id}" style="margin-left: ${level * 16}px">
+          <div class="flex items-center justify-between py-2 px-2 hover:bg-gray-100 rounded cursor-pointer" 
+               onclick="app.selectFolder(${folder.id})">
             <div class="flex items-center space-x-2">
-              <i class="fas fa-folder${folder.children && folder.children.length > 0 ? '-open' : ''} text-yellow-600"></i>
-              <span class="text-sm font-medium">${folder.name}</span>
-              <span class="text-xs text-gray-500">(${folder.bookmark_count || 0})</span>
+              <i class="fas fa-folder text-yellow-600"></i>
+              <span class="text-sm font-medium">${this.escapeHtml(folder.name)}</span>
+              ${folder.bookmark_count > 0 ? `<span class="text-xs text-gray-500">(${folder.bookmark_count})</span>` : ''}
             </div>
-            <button onclick="event.stopPropagation(); bookmarkManager.deleteFolder(${folder.id})" 
-                    class="text-gray-400 hover:text-red-500 text-xs">
-              <i class="fas fa-trash"></i>
-            </button>
+            <div class="flex items-center space-x-1">
+              <button onclick="event.stopPropagation(); app.editFolder(${folder.id})" 
+                      class="text-gray-400 hover:text-blue-600">
+                <i class="fas fa-edit text-xs"></i>
+              </button>
+              <button onclick="event.stopPropagation(); app.deleteFolder(${folder.id})" 
+                      class="text-gray-400 hover:text-red-600">
+                <i class="fas fa-trash text-xs"></i>
+              </button>
+            </div>
           </div>
+          ${folder.children && folder.children.length > 0 ? renderFolderTree(folder.children, level + 1) : ''}
         </div>
-      `
-      
-      if (folder.children && folder.children.length > 0) {
-        folder.children.forEach(child => {
-          html += renderFolder(child, level + 1)
-        })
-      }
-      
-      return html
+      `).join('')
     }
 
-    const allFoldersButton = `
-      <div class="folder-item py-2 cursor-pointer hover:bg-gray-50 rounded mb-2 ${!this.currentFolder ? 'bg-blue-50 text-blue-600' : ''}" 
-           onclick="bookmarkManager.selectFolder(null)">
-        <div class="flex items-center space-x-2">
-          <i class="fas fa-bookmark"></i>
-          <span class="text-sm font-medium">すべてのブックマーク</span>
+    // Add "All Bookmarks" option at the top
+    const allBookmarksHTML = `
+      <div class="folder-item" data-folder-id="">
+        <div class="flex items-center justify-between py-2 px-2 hover:bg-gray-100 rounded cursor-pointer bg-blue-50" 
+             onclick="app.selectFolder(null)">
+          <div class="flex items-center space-x-2">
+            <i class="fas fa-bookmark text-blue-600"></i>
+            <span class="text-sm font-medium text-blue-600" data-i18n="bookmarks.allBookmarks">All Bookmarks</span>
+          </div>
         </div>
       </div>
     `
 
-    const foldersHtml = this.folders.map(folder => renderFolder(folder)).join('')
-    container.innerHTML = allFoldersButton + foldersHtml
-  }
-
-  updateStatistics() {
-    const totalBookmarks = this.bookmarks.length
-    const totalFolders = this.folders.length
-    const totalFavorites = this.bookmarks.filter(b => b.is_favorite).length
-
-    document.getElementById('total-bookmarks').textContent = totalBookmarks
-    document.getElementById('total-folders').textContent = totalFolders  
-    document.getElementById('total-favorites').textContent = totalFavorites
+    container.innerHTML = allBookmarksHTML + renderFolderTree(this.folders)
     
-    // Update last sync time
-    const lastSyncElement = document.getElementById('last-sync')
-    if (this.sessionToken) {
-      lastSyncElement.textContent = new Date().toLocaleTimeString('ja-JP')
+    // Re-apply i18n to new elements
+    if (window.i18n) {
+      window.i18n.updatePageContent()
     }
   }
 
-  // Folder operations
-  selectFolder(folderId) {
-    this.currentFolder = folderId
-    this.loadBookmarks(folderId)
-    
-    // Update current folder display
-    const folderName = folderId ? 
-      this.findFolderById(folderId)?.name || 'フォルダ' : 
-      'すべてのブックマーク'
-    document.getElementById('current-folder').textContent = folderName
-  }
+  updateStats(bookmarkResult, folderResult, syncResult) {
+    if (bookmarkResult.success) {
+      const totalBookmarks = document.getElementById('total-bookmarks')
+      const totalFavorites = document.getElementById('total-favorites')
+      
+      if (totalBookmarks) totalBookmarks.textContent = bookmarkResult.stats.total_bookmarks
+      if (totalFavorites) totalFavorites.textContent = bookmarkResult.stats.total_favorites
+    }
 
-  findFolderById(folderId) {
-    const findInFolders = (folders) => {
-      for (const folder of folders) {
-        if (folder.id === folderId) return folder
-        if (folder.children) {
-          const found = findInFolders(folder.children)
-          if (found) return found
+    if (folderResult.success) {
+      const totalFolders = document.getElementById('total-folders')
+      if (totalFolders) totalFolders.textContent = folderResult.stats.total_folders
+    }
+
+    if (syncResult.success) {
+      const lastSync = document.getElementById('last-sync')
+      if (lastSync) {
+        const lastSyncTime = syncResult.status.last_sync_at
+        if (lastSyncTime && window.i18n) {
+          lastSync.textContent = window.i18n.formatTimeAgo(lastSyncTime)
         }
       }
-      return null
-    }
-    return findInFolders(this.folders)
-  }
-
-  // Bookmark operations
-  async recordVisit(bookmarkId) {
-    try {
-      await fetch(`/api/bookmarks/${bookmarkId}/visit`, {
-        method: 'POST',
-        headers: {
-          'X-Session-Token': this.sessionToken
-        }
-      })
-    } catch (error) {
-      console.error('Record visit error:', error)
-    }
-  }
-
-  async toggleFavorite(bookmarkId, isFavorite) {
-    try {
-      const response = await fetch(`/api/bookmarks/${bookmarkId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Session-Token': this.sessionToken
-        },
-        body: JSON.stringify({ is_favorite: isFavorite })
-      })
-
-      const result = await response.json()
-      
-      if (result.success) {
-        await this.loadBookmarks(this.currentFolder)
-        this.showMessage(isFavorite ? 'お気に入りに追加しました' : 'お気に入りから削除しました', 'success')
-      }
-    } catch (error) {
-      console.error('Toggle favorite error:', error)
-      this.showMessage('お気に入りの更新に失敗しました', 'error')
-    }
-  }
-
-  // Search and sort
-  searchBookmarks(query) {
-    this.loadBookmarks(this.currentFolder, query)
-  }
-
-  sortBookmarks(sortBy) {
-    // Sort is handled by the API
-    this.loadBookmarks(this.currentFolder, document.getElementById('search-input').value)
-  }
-
-  // Sync operations
-  async syncData() {
-    try {
-      document.getElementById('sync-btn').disabled = true
-      document.getElementById('sync-btn').innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>同期中...'
-      
-      const response = await fetch('/api/sync/trigger', {
-        method: 'POST',
-        headers: {
-          'X-Session-Token': this.sessionToken
-        }
-      })
-
-      const result = await response.json()
-      
-      if (result.success) {
-        await this.loadData()
-        this.showMessage('同期が完了しました', 'success')
-      } else {
-        this.showMessage('同期に失敗しました: ' + result.error, 'error')
-      }
-    } catch (error) {
-      console.error('Sync error:', error)
-      this.showMessage('同期エラーが発生しました', 'error')
-    } finally {
-      document.getElementById('sync-btn').disabled = false
-      document.getElementById('sync-btn').innerHTML = '<i class="fas fa-sync mr-2"></i>同期実行'
-    }
-  }
-
-  async exportBookmarks() {
-    try {
-      const format = confirm('HTML形式でエクスポートしますか？\\n（キャンセルでJSON形式）') ? 'html' : 'json'
-      
-      const response = await fetch(`/api/sync/export?format=${format}`, {
-        headers: {
-          'X-Session-Token': this.sessionToken
-        }
-      })
-
-      if (response.ok) {
-        const blob = await response.blob()
-        const url = window.URL.createObjectURL(blob)
-        const a = document.createElement('a')
-        a.href = url
-        a.download = `bookmarks.${format}`
-        document.body.appendChild(a)
-        a.click()
-        document.body.removeChild(a)
-        window.URL.revokeObjectURL(url)
-        
-        this.showMessage('ブックマークをエクスポートしました', 'success')
-      }
-    } catch (error) {
-      console.error('Export error:', error)
-      this.showMessage('エクスポートに失敗しました', 'error')
-    }
-  }
-
-  // Modal operations (simplified for MVP)
-  showAddBookmarkModal() {
-    const title = prompt('ブックマークのタイトル:')
-    if (!title) return
-
-    const url = prompt('URL:')
-    if (!url) return
-
-    const description = prompt('説明（オプション）:') || ''
-
-    this.createBookmark({ title, url, description, folder_id: this.currentFolder })
-  }
-
-  showAddFolderModal() {
-    const name = prompt('フォルダ名:')
-    if (!name) return
-
-    this.createFolder({ name, parent_id: null })
-  }
-
-  async createBookmark(data) {
-    try {
-      const response = await fetch('/api/bookmarks', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Session-Token': this.sessionToken
-        },
-        body: JSON.stringify(data)
-      })
-
-      const result = await response.json()
-      
-      if (result.success) {
-        await this.loadBookmarks(this.currentFolder)
-        this.updateStatistics()
-        this.showMessage('ブックマークを追加しました', 'success')
-      } else {
-        this.showMessage('ブックマークの追加に失敗しました: ' + result.error, 'error')
-      }
-    } catch (error) {
-      console.error('Create bookmark error:', error)
-      this.showMessage('ブックマーク追加エラーが発生しました', 'error')
-    }
-  }
-
-  async createFolder(data) {
-    try {
-      const response = await fetch('/api/folders', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Session-Token': this.sessionToken
-        },
-        body: JSON.stringify(data)
-      })
-
-      const result = await response.json()
-      
-      if (result.success) {
-        await this.loadFolders()
-        this.showMessage('フォルダを追加しました', 'success')
-      } else {
-        this.showMessage('フォルダの追加に失敗しました: ' + result.error, 'error')
-      }
-    } catch (error) {
-      console.error('Create folder error:', error)
-      this.showMessage('フォルダ追加エラーが発生しました', 'error')
-    }
-  }
-
-  async deleteBookmark(bookmarkId) {
-    if (!confirm('このブックマークを削除しますか？')) return
-
-    try {
-      const response = await fetch(`/api/bookmarks/${bookmarkId}`, {
-        method: 'DELETE',
-        headers: {
-          'X-Session-Token': this.sessionToken
-        }
-      })
-
-      const result = await response.json()
-      
-      if (result.success) {
-        await this.loadBookmarks(this.currentFolder)
-        this.updateStatistics()
-        this.showMessage('ブックマークを削除しました', 'success')
-      }
-    } catch (error) {
-      console.error('Delete bookmark error:', error)
-      this.showMessage('ブックマーク削除エラーが発生しました', 'error')
-    }
-  }
-
-  async deleteFolder(folderId) {
-    if (!confirm('このフォルダを削除しますか？\\n（中身が空の場合のみ削除できます）')) return
-
-    try {
-      const response = await fetch(`/api/folders/${folderId}`, {
-        method: 'DELETE',
-        headers: {
-          'X-Session-Token': this.sessionToken
-        }
-      })
-
-      const result = await response.json()
-      
-      if (result.success) {
-        await this.loadFolders()
-        this.showMessage('フォルダを削除しました', 'success')
-      } else {
-        this.showMessage('フォルダの削除に失敗しました: ' + result.error, 'error')
-      }
-    } catch (error) {
-      console.error('Delete folder error:', error)
-      this.showMessage('フォルダ削除エラーが発生しました', 'error')
     }
   }
 
   // Utility methods
-  showMessage(message, type = 'info') {
-    // Simple alert for MVP - replace with toast notifications later
-    const emoji = type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️'
-    alert(emoji + ' ' + message)
+  escapeHtml(text) {
+    const div = document.createElement('div')
+    div.textContent = text
+    return div.innerHTML
+  }
+
+  formatDate(dateString) {
+    if (window.i18n) {
+      return window.i18n.formatTimeAgo(dateString)
+    }
+    return new Date(dateString).toLocaleDateString()
+  }
+
+  showMessage(messageKey, type = 'info') {
+    const message = window.i18n ? window.i18n.t(messageKey) : messageKey
+    
+    // Create toast notification
+    const toast = document.createElement('div')
+    toast.className = `fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg max-w-sm ${
+      type === 'success' ? 'bg-green-600 text-white' :
+      type === 'error' ? 'bg-red-600 text-white' :
+      'bg-blue-600 text-white'
+    }`
+    
+    toast.innerHTML = `
+      <div class="flex items-center justify-between">
+        <span>${message}</span>
+        <button onclick="this.parentElement.parentElement.remove()" class="ml-2 text-white hover:text-gray-200">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+    `
+    
+    document.body.appendChild(toast)
+    
+    // Auto-remove after 3 seconds
+    setTimeout(() => {
+      if (toast.parentNode) {
+        toast.parentNode.removeChild(toast)
+      }
+    }, 3000)
+  }
+
+  clearData() {
+    this.bookmarks = []
+    this.folders = []
+    this.renderBookmarks()
+    this.renderFolders()
+    
+    // Reset stats
+    const stats = ['total-bookmarks', 'total-folders', 'total-favorites']
+    stats.forEach(id => {
+      const element = document.getElementById(id)
+      if (element) element.textContent = '0'
+    })
+    
+    const lastSync = document.getElementById('last-sync')
+    if (lastSync && window.i18n) {
+      lastSync.textContent = window.i18n.t('time.never')
+    }
+  }
+
+  updateDynamicContent() {
+    // Update placeholder texts that might not be caught by data-i18n
+    const searchInput = document.getElementById('search-input')
+    if (searchInput && window.i18n) {
+      searchInput.placeholder = window.i18n.t('actions.search')
+    }
+  }
+
+  // Placeholder methods for features to be implemented
+  selectFolder(folderId) {
+    this.currentFolder = folderId
+    console.log('Selected folder:', folderId)
+    // TODO: Implement folder selection
+  }
+
+  showAddBookmarkModal() {
+    console.log('Add bookmark modal')
+    // TODO: Implement add bookmark modal
+  }
+
+  showAddFolderModal() {
+    console.log('Add folder modal')
+    // TODO: Implement add folder modal
+  }
+
+  editBookmark(id) {
+    console.log('Edit bookmark:', id)
+    // TODO: Implement bookmark editing
+  }
+
+  deleteBookmark(id) {
+    console.log('Delete bookmark:', id)
+    // TODO: Implement bookmark deletion
+  }
+
+  editFolder(id) {
+    console.log('Edit folder:', id)
+    // TODO: Implement folder editing
+  }
+
+  deleteFolder(id) {
+    console.log('Delete folder:', id)
+    // TODO: Implement folder deletion
+  }
+
+  handleSearch(query) {
+    console.log('Search:', query)
+    // TODO: Implement search
+  }
+
+  handleSort(sortBy) {
+    console.log('Sort by:', sortBy)
+    // TODO: Implement sorting
+  }
+
+  performSync() {
+    console.log('Performing sync')
+    // TODO: Implement sync
+  }
+
+  exportData() {
+    console.log('Export data')
+    // TODO: Implement data export
+  }
+
+  hideExtensionNotice() {
+    const notice = document.getElementById('extension-notice')
+    if (notice) {
+      notice.style.display = 'none'
+    }
+  }
+
+  openExtensionStore() {
+    // TODO: Open Chrome Web Store when extension is ready
+    console.log('Open extension store')
   }
 }
 
-// Initialize the app
-const bookmarkManager = new BookmarkManager()
-
-// Make it globally available for onclick handlers
-window.bookmarkManager = bookmarkManager
+// Initialize app
+window.app = new SyncMarkApp()

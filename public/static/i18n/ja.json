@@ -1,0 +1,125 @@
+{
+  "app": {
+    "name": "SyncMark for Chrome",
+    "description": "Chrome系ブラウザ対応ブックマーク同期サービス",
+    "subtitle": "Chrome系のための同期ブックマーク"
+  },
+  "auth": {
+    "login": "Googleでログイン",
+    "logout": "ログアウト",
+    "loginSuccess": "ログインしました",
+    "logoutSuccess": "ログアウトしました",
+    "authRequired": "ログインが必要です"
+  },
+  "nav": {
+    "dashboard": "ダッシュボード",
+    "bookmarks": "ブックマーク",
+    "folders": "フォルダ",
+    "settings": "設定",
+    "help": "ヘルプ"
+  },
+  "stats": {
+    "totalBookmarks": "総ブックマーク数",
+    "totalFolders": "フォルダ数",
+    "totalFavorites": "お気に入り",
+    "lastSync": "最終同期"
+  },
+  "actions": {
+    "add": "追加",
+    "edit": "編集",
+    "delete": "削除",
+    "save": "保存",
+    "cancel": "キャンセル",
+    "sync": "同期実行",
+    "export": "エクスポート",
+    "import": "インポート",
+    "search": "検索",
+    "sort": "並び替え"
+  },
+  "bookmarks": {
+    "title": "ブックマーク",
+    "allBookmarks": "すべてのブックマーク",
+    "addBookmark": "ブックマーク追加",
+    "editBookmark": "ブックマーク編集",
+    "deleteBookmark": "ブックマーク削除",
+    "noBookmarks": "ブックマークがありません",
+    "noBookmarksDesc": "「ブックマーク追加」ボタンから追加してください",
+    "bookmarkTitle": "タイトル",
+    "bookmarkUrl": "URL",
+    "bookmarkDescription": "説明",
+    "bookmarkTags": "タグ",
+    "bookmarkFolder": "フォルダ",
+    "isFavorite": "お気に入り",
+    "visitCount": "アクセス回数",
+    "lastVisited": "最終アクセス",
+    "created": "作成日",
+    "updated": "更新日"
+  },
+  "folders": {
+    "title": "フォルダ",
+    "addFolder": "フォルダ追加",
+    "editFolder": "フォルダ編集",
+    "deleteFolder": "フォルダ削除",
+    "noFolders": "フォルダなし",
+    "folderName": "フォルダ名",
+    "parentFolder": "親フォルダ",
+    "subfolders": "サブフォルダ",
+    "bookmarkCount": "ブックマーク数"
+  },
+  "sort": {
+    "title": "タイトル順",
+    "created": "作成日順",
+    "updated": "更新日順",
+    "visited": "アクセス順",
+    "popular": "人気順",
+    "position": "位置順"
+  },
+  "messages": {
+    "success": "成功しました",
+    "error": "エラーが発生しました",
+    "loading": "読み込み中...",
+    "noData": "データがありません",
+    "confirmDelete": "削除してもよろしいですか？",
+    "unsavedChanges": "保存されていない変更があります",
+    "networkError": "ネットワークエラーが発生しました",
+    "syncComplete": "同期が完了しました",
+    "syncError": "同期に失敗しました"
+  },
+  "extension": {
+    "title": "Chrome拡張機能",
+    "description": "ブラウザでの自動同期を有効にするには、Chrome拡張機能をインストールしてください。",
+    "installExtension": "拡張機能をインストール",
+    "extensionConnected": "拡張機能が接続されています",
+    "extensionDisconnected": "拡張機能が切断されています"
+  },
+  "settings": {
+    "title": "設定",
+    "language": "言語",
+    "theme": "テーマ",
+    "autoSync": "自動同期",
+    "syncInterval": "同期間隔",
+    "exportData": "データエクスポート",
+    "importData": "データインポート",
+    "clearData": "データクリア",
+    "account": "アカウント",
+    "privacy": "プライバシー",
+    "about": "アプリについて"
+  },
+  "validation": {
+    "required": "必須項目です",
+    "invalidUrl": "有効なURLを入力してください",
+    "invalidEmail": "有効なメールアドレスを入力してください",
+    "tooLong": "文字数が多すぎます",
+    "tooShort": "文字数が少なすぎます"
+  },
+  "time": {
+    "justNow": "たった今",
+    "minutesAgo": "分前",
+    "hoursAgo": "時間前",
+    "daysAgo": "日前",
+    "weeksAgo": "週間前",
+    "monthsAgo": "ヶ月前",
+    "yearsAgo": "年前",
+    "never": "未同期"
+  }
+}

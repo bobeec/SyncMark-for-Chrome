@@ -1,21 +1,83 @@
-```txt
-npm install
-npm run dev
-```
+# Chrome系ブラウザ対応 ブックマーク管理アプリ
 
-```txt
-npm run deploy
-```
+## プロジェクト概要
+- **名前**: bookmark-manager
+- **目標**: Chrome派生ブラウザ間でブックマークを同期できるWebアプリ + Chrome拡張機能の開発
+- **主要機能**: Googleログイン認証、ブックマーク管理、フォルダ階層、Chrome拡張機能による自動同期
 
-[For generating/synchronizing types based on your Worker configuration run](https://developers.cloudflare.com/workers/wrangler/commands/#types):
+## 現在の動作URL
+- **開発環境**: https://3000-iieuh916jtoaqqegoxuy4-c81df28e.sandbox.novita.ai
+- **APIヘルスチェック**: https://3000-iieuh916jtoaqqegoxuy4-c81df28e.sandbox.novita.ai/api/health
+- **GitHub**: （GitHubリポジトリは後で設定予定）
 
-```txt
-npm run cf-typegen
-```
+## データアーキテクチャ
+- **データベース**: Cloudflare D1 (SQLite) - ローカル開発環境で動作中
+- **主要テーブル**:
+  - `users`: Googleアカウント管理
+  - `folders`: ブックマークフォルダ（階層構造対応）
+  - `bookmarks`: ブックマークデータ（タグ、お気に入り、アクセス統計対応）
+  - `sync_sessions`: Chrome拡張機能との同期セッション管理
+- **ストレージサービス**: Cloudflare D1（ローカル開発では .wrangler/state/v3/d1 内のSQLite）
+- **データフロー**: WebApp ⇔ Hono API ⇔ D1 Database ⇔ Chrome Extension
 
-Pass the `CloudflareBindings` as generics when instantiation `Hono`:
+## 利用ガイド
+### 現在利用可能な機能（MVP段階）
+1. **Webアプリにアクセス**: ブラウザで開発環境URLを開く
+2. **ログイン**: 「Googleでログイン」ボタン（現在はMockログイン）
+3. **ブックマーク管理**: 
+   - 追加: 「ブックマーク追加」ボタンでタイトル・URLを入力
+   - 削除: 各ブックマーク右側の削除ボタン
+   - お気に入り: 星アイコンでお気に入り切り替え
+4. **フォルダ管理**:
+   - 追加: 「フォルダ追加」ボタンでフォルダ名を入力
+   - 階層構造: サイドバーでフォルダをクリックして選択
+5. **検索・並び替え**: ブックマーク一覧上部の検索ボックスとソートオプション
+6. **エクスポート**: 「エクスポート」ボタンでJSON/HTML形式でダウンロード
 
-```ts
-// src/index.ts
-const app = new Hono<{ Bindings: CloudflareBindings }>()
-```
+### 今後実装予定の機能
+1. **本格的なGoogleログイン**: OAuth 2.0実装（現在はMockログイン）
+2. **Chrome拡張機能**: ブラウザでのブックマーク操作とWebアプリ自動同期
+3. **リアルタイム同期**: 複数デバイス間でのブックマーク自動同期
+4. **UI/UX改善**: ドラッグ&ドロップ、モーダルダイアログ、レスポンシブデザイン改善
+
+## 開発マイルストーン
+
+### ✅ 完了した機能
+1. **プロジェクト基盤セットアップ**: Hono + TypeScript + Cloudflare Pages + D1データベース
+2. **基本的なWebアプリ**: ログイン、ブックマーク・フォルダCRUD、検索・並び替え、エクスポート
+3. **データベース設計**: 完全なスキーマ設計とマイグレーション
+4. **APIエンドポイント**: 認証、ブックマーク、フォルダ、同期用の全REST API
+5. **フロントエンド基盤**: TailwindCSS + FontAwesome + Axios
+
+### 🔄 現在開発中
+2. **MVP機能のブラッシュアップ**: バグ修正、UX改善、エラーハンドリング強化
+
+### ⏳ 次の開発予定
+3. **Chrome拡張機能**: manifest.json、background script、content script、popup UI
+4. **Googleログイン認証**: OAuth 2.0フロー、トークン管理、セキュリティ向上
+5. **同期機能とUI改善**: リアルタイム同期、ドラッグ&ドロップ、モーダルダイアログ
+
+## デプロイメント
+- **プラットフォーム**: Cloudflare Pages
+- **状態**: ❌ 本番環境未デプロイ（開発環境のみ）
+- **技術スタック**: Hono + TypeScript + TailwindCSS + Cloudflare D1
+- **最終更新**: 2025-10-13
+
+## 開発メモ
+
+### 設計上の重要な決定
+1. **軽量アーキテクチャ**: CloudflareのEdgeランタイム制限に対応した軽量設計
+2. **API-First設計**: Chrome拡張機能との連携を考慮したRESTful API設計
+3. **段階的開発**: MVP → Chrome拡張機能 → 高度な機能 の順で段階的実装
+4. **セキュリティ重視**: セッショントークン管理、CORS設定、入力検証の実装
+
+### 技術的制約と対応
+- **Cloudflare Workers制限**: Node.js APIは使用不可 → Web標準API使用
+- **D1データベース制限**: トランザクション未対応 → ベストエフォート型更新処理
+- **Edge環境**: ファイルシステム未対応 → Cloudflareサービス（D1, KV, R2）活用
+
+### 次のステップ推奨事項
+1. **Chrome拡張機能のプロトタイプ**: 基本的なブックマーク追加・削除機能
+2. **Googleログイン実装**: セキュリティを考慮したOAuth 2.0フロー
+3. **Cloudflare本番環境デプロイ**: API KEYセットアップ後の本番デプロイ
+4. **ユーザビリティテスト**: 実際のChrome派生ブラウザでの動作検証

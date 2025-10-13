@@ -1,6 +1,6 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "webapp",
+  "name": "syncmark-for-chrome",
   "compatibility_date": "2025-10-13",
   "pages_build_output_dir": "./dist",
   "compatibility_flags": [
@@ -9,7 +9,7 @@
   "d1_databases": [
     {
       "binding": "DB",
-      "database_name": "bookmark-production",
+      "database_name": "syncmark-production",
       "database_id": "placeholder-will-be-updated-after-d1-create"
     }
   ]
