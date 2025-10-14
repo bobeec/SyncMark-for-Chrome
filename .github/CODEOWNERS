@@ -1,0 +1,30 @@
+# Global code owners
+* @bocotime
+
+# API and backend code
+/src/ @bocotime
+/migrations/ @bocotime
+wrangler.jsonc @bocotime
+ecosystem.config.cjs @bocotime
+
+# Chrome extension
+/extension/ @bocotime
+
+# Documentation
+*.md @bocotime
+/docs/ @bocotime
+
+# CI/CD and GitHub configuration  
+/.github/ @bocotime
+
+# Security-related files
+SECURITY.md @bocotime
+/.github/workflows/security.yml @bocotime
+
+# Package management
+package.json @bocotime
+package-lock.json @bocotime
+
+# Configuration files
+tsconfig.json @bocotime
+vite.config.ts @bocotime

@@ -289,7 +289,19 @@ curl http://localhost:3000/api/health  # ヘルスチェック
 - **入力検証**: より厳密なバリデーション
 
 ## 📄 ライセンス / License
-*未定 / To be determined*
+
+このプロジェクトは [MIT License](LICENSE) の下で公開されています。  
+This project is licensed under the [MIT License](LICENSE).
+
+### 🤝 コントリビューション / Contributing
+
+コントリビューションを歓迎します！詳細は [CONTRIBUTING.md](CONTRIBUTING.md) をご覧ください。  
+Contributions are welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) for details.
+
+### 🛡️ セキュリティ / Security
+
+セキュリティの問題を発見した場合は、[SECURITY.md](SECURITY.md) をお読みください。  
+If you discover a security vulnerability, please read [SECURITY.md](SECURITY.md).
 
 ## 👨‍💻 開発者情報 / Developer Information  
 - **最終更新**: 2025年10月13日
