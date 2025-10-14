@@ -23,7 +23,7 @@
 ### 開発環境 / Development Environment
 - **Webアプリ**: https://3000-iieuh916jtoaqqegoxuy4-c81df28e.sandbox.novita.ai
 - **API Health Check**: https://3000-iieuh916jtoaqqegoxuy4-c81df28e.sandbox.novita.ai/api/health
-- **GitHub**: *予定 / To be configured*
+- **GitHub**: https://github.com/bocotime/SyncMark-for-Chrome
 
 ### 本番環境 / Production Environment
 - **Cloudflare Pages**: *デプロイ予定 / To be deployed*
