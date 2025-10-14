@@ -2,6 +2,7 @@
   "manifest_version": 3,
   "name": "SyncMark for Chrome",
   "version": "1.0.0",
+  "homepage_url": "https://github.com/bocotime/SyncMark-for-Chrome",
   "description": "Chrome系ブラウザ対応ブックマーク同期サービス / Bookmark Synchronization Service for Chrome-based Browsers",
   "author": "SyncMark Team",
   
