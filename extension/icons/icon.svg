@@ -1,0 +1,22 @@
+<svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#3b82f6"/>
+      <stop offset="100%" style="stop-color:#1d4ed8"/>
+    </linearGradient>
+  </defs>
+  <!-- Bookmark shape -->
+  <path d="M95 112 L64 85 L33 112 V33 C33 26.37 38.37 21 45 21 H83 C89.63 21 95 26.37 95 33 Z" 
+        fill="url(#gradient)" 
+        stroke="white" 
+        stroke-width="3"/>
+  <!-- Sync indicator circle -->
+  <circle cx="92" cy="36" r="16" fill="#10b981"/>
+  <!-- Checkmark -->
+  <path d="M85 36 L89 40 L99 30" 
+        stroke="white" 
+        stroke-width="4" 
+        stroke-linecap="round" 
+        stroke-linejoin="round"
+        fill="none"/>
+</svg>

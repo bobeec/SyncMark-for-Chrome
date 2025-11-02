@@ -46,3 +46,6 @@ Thumbs.db
 
 # Test coverage
 coverage/
+# Extension build outputs
+extension/build/
+extension/*.zip

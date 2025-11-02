@@ -71,6 +71,19 @@ function updateManifest() {
     "https://*.cloudflare.workers.dev/*"
   ]
   
+  // Update paths for src directory structure
+  if (manifest.background && manifest.background.service_worker) {
+    manifest.background.service_worker = "src/background.js"
+  }
+  
+  if (manifest.content_scripts) {
+    manifest.content_scripts.forEach(script => {
+      if (script.js) {
+        script.js = script.js.map(js => js.includes('/') ? js : `src/${js}`)
+      }
+    })
+  }
+  
   fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2))
   console.log('Updated manifest for production')
 }
@@ -110,10 +123,6 @@ function build() {
   
   // Update manifest for production
   updateManifest()
-  
-  // Create src directory in build
-  const buildSrcDir = path.join(BUILD_DIR, 'src')
-  ensureDir(buildSrcDir)
   
   console.log('\n✅ Extension build complete!')
   console.log(`📦 Build output: ${BUILD_DIR}`)
