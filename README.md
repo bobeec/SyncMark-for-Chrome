@@ -173,6 +173,9 @@ npx wrangler d1 migrations apply syncmark-production
 - [x] ポップアップUI
 - [x] 設定ページ  
 - [x] 浮遊ブックマークボタン
+- [x] アイコン作成完了（16x16, 32x32, 48x48, 128x128）
+- [x] ビルドシステム完成
+- [x] Chrome Web Store配布用ZIPパッケージ作成
 
 ### ✅ 多言語対応 / Internationalization
 - [x] 日本語・英語対応
@@ -212,19 +215,21 @@ npx wrangler d1 migrations apply syncmark-production
 ## 🎯 推奨次ステップ / Recommended Next Steps
 
 ### 1. 優先度：高 / High Priority
-1. **実際のGoogle OAuth実装** / Real Google OAuth Implementation
+1. **Chrome拡張機能のテストと公開** / Chrome Extension Testing and Publishing ✅
+   - ローカルテスト（開発者モード） - 手順書完成
+   - Chrome Web Store公開申請 - 手順書完成
+   - ZIPパッケージ準備完了: `extension/syncmark-chrome-extension-v1.0.0.zip`
+   - 詳細は `extension/TESTING.md` と `extension/PUBLISHING.md` を参照
+
+2. **実際のGoogle OAuth実装** / Real Google OAuth Implementation
    - Google Cloud Console設定
    - 本格的な認証フロー
    - セキュリティ強化
 
-2. **Cloudflare本番デプロイ** / Cloudflare Production Deployment  
+3. **Cloudflare本番デプロイ** / Cloudflare Production Deployment  
    - Cloudflare Pages設定
    - D1データベース本番環境
    - カスタムドメイン設定
-
-3. **Chrome拡張機能アイコン作成** / Chrome Extension Icons
-   - 16x16, 32x32, 48x48, 128x128 PNG
-   - ブランディング統一
 
 ### 2. 優先度：中 / Medium Priority  
 4. **リアルタイム同期実装** / Real-time Synchronization
@@ -275,7 +280,6 @@ curl http://localhost:3000/api/health  # ヘルスチェック
 
 ### 技術的制約 / Technical Limitations
 - **認証**: 現在はモック実装（本格OAuth必要）
-- **アイコン**: 拡張機能アイコンが未作成  
 - **同期**: 手動同期のみ（自動同期未実装）
 
 ### UX上の課題 / UX Issues  
@@ -304,8 +308,10 @@ Contributions are welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) for de
 If you discover a security vulnerability, please read [SECURITY.md](SECURITY.md).
 
 ## 👨‍💻 開発者情報 / Developer Information  
-- **最終更新**: 2025年10月13日
-- **開発状況**: MVP完了、Chrome拡張機能実装完了
+- **最終更新**: 2025年11月2日
+- **開発状況**: MVP完了、Chrome拡張機能実装完了、公開準備完了
+- **バージョン**: v1.0.0
+- **配布パッケージ**: `extension/syncmark-chrome-extension-v1.0.0.zip`
 - **次期バージョン**: v1.1（Google OAuth実装予定）
 
 ---
