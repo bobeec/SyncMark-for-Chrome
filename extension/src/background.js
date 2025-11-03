@@ -358,12 +358,22 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
  */
 async function handleLogin(data) {
   try {
+    // send id_token when available (client will provide id_token), fall back to token for MVP
+    const body = { }
+    if (data && data.id_token) {
+      body.id_token = data.id_token
+    } else if (data && data.token) {
+      body.token = data.token
+    } else {
+      body.token = 'mock-token'
+    }
+
     const response = await fetch(`${CONFIG.API_BASE_URL}/auth/google`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({ token: data.token || 'mock-token' })
+      body: JSON.stringify(body)
     })
 
     const result = await response.json()

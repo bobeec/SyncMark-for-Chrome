@@ -1,6 +1,9 @@
 // Database bindings
 export interface CloudflareBindings {
-  DB: D1Database;
+  // D1 binding (use any here to avoid depending on external types in this repo)
+  DB: any;
+  // Google OAuth client ID (set as environment variable / Wrangler secret)
+  GOOGLE_CLIENT_ID?: string;
 }
 
 // User models

@@ -194,10 +194,48 @@ class SyncMarkPopup {
   async handleLogin() {
     try {
       this.showLoading(true)
-      
-      const response = await this.sendMessageToBackground('login', {
-        token: 'mock-token' // For MVP
+      // Try to obtain Google ID token via chrome.identity (OAuth flow)
+      const stored = await new Promise((resolve) => chrome.storage.local.get(['google_client_id'], resolve))
+      const clientId = stored && stored.google_client_id
+
+      if (!clientId) {
+        // Fallback: send mock token to allow limited testing
+        const response = await this.sendMessageToBackground('login', { token: 'mock-token' })
+
+        if (response.success) {
+          this.authStatus = { isAuthenticated: true, user: response.user }
+          this.updateAuthUI()
+          await this.loadStats()
+          this.updateUI()
+          this.showMessage(window.i18n.t('auth.loginSuccess'), 'success')
+        } else {
+          throw new Error(response.error || 'Login failed')
+        }
+
+        return
+      }
+
+      // Construct OAuth URL
+      const redirectUri = chrome.identity.getRedirectURL()
+      const nonce = Math.random().toString(36).substring(2)
+      const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${encodeURIComponent(clientId)}&response_type=id_token&scope=openid%20email%20profile&redirect_uri=${encodeURIComponent(redirectUri)}&nonce=${nonce}&prompt=consent`
+
+      const idToken = await new Promise((resolve, reject) => {
+        chrome.identity.launchWebAuthFlow({ url: authUrl, interactive: true }, (redirectUrl) => {
+          if (chrome.runtime.lastError) return reject(new Error(chrome.runtime.lastError.message))
+          if (!redirectUrl) return reject(new Error('No redirect URL returned'))
+
+          // Google returns id_token in the fragment (#id_token=...)
+          const hash = redirectUrl.split('#')[1] || ''
+          const params = new URLSearchParams(hash)
+          const id_token = params.get('id_token')
+          if (!id_token) return reject(new Error('id_token not found in redirect'))
+          resolve(id_token)
+        })
       })
+
+      // Send id_token to background for server verification
+      const response = await this.sendMessageToBackground('login', { id_token: idToken })
 
       if (response.success) {
         this.authStatus = { isAuthenticated: true, user: response.user }

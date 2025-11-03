@@ -6,48 +6,88 @@ export const authRoutes = new Hono<{ Bindings: CloudflareBindings }>()
 // Mock Google OAuth for MVP (will be replaced with real OAuth later)
 authRoutes.post('/google', async (c) => {
   try {
-    const { token } = await c.req.json()
-    
-    // In MVP, we'll use mock data
-    // TODO: Implement real Google OAuth verification
-    const mockGoogleUser = {
-      google_id: 'mock-google-id-' + Date.now(),
-      email: 'user@example.com',
-      name: 'Test User',
-      avatar_url: 'https://via.placeholder.com/40'
+    // Accept either an ID token (from Google) or a legacy mock token for local testing
+    const body = await c.req.json()
+    const id_token = body?.id_token
+    const token = body?.token
+
+    let googleUser: any = null
+
+    if (id_token) {
+      const clientId = c.env.GOOGLE_CLIENT_ID
+      if (!clientId) {
+        console.error('GOOGLE_CLIENT_ID not configured in environment')
+        return c.json({ success: false, error: 'Server misconfiguration' }, 500)
+      }
+
+      // Validate the ID token by calling Google's tokeninfo endpoint
+      const tokenInfoRes = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(id_token)}`)
+      if (!tokenInfoRes.ok) {
+        console.error('Invalid ID token, google tokeninfo returned', tokenInfoRes.status)
+        return c.json({ success: false, error: 'Invalid ID token' }, 401)
+      }
+
+      const info = await tokenInfoRes.json() as any
+
+      // Verify audience and issuer
+      if (info.aud !== clientId) {
+        console.error('ID token aud mismatch', info.aud, clientId)
+        return c.json({ success: false, error: 'Invalid token audience' }, 401)
+      }
+
+      if (!['accounts.google.com', 'https://accounts.google.com'].includes(info.iss)) {
+        console.error('Unexpected token issuer', info.iss)
+        return c.json({ success: false, error: 'Invalid token issuer' }, 401)
+      }
+
+      // Extract user information from token info
+      googleUser = {
+        google_id: info.sub,
+        email: info.email,
+        name: info.name || info.email.split('@')[0],
+        avatar_url: info.picture || null
+      }
+    } else if (token === 'mock-token') {
+      // Legacy mock login for local testing
+      googleUser = {
+        google_id: 'mock-google-id-' + Date.now(),
+        email: 'user@example.com',
+        name: 'Test User',
+        avatar_url: 'https://via.placeholder.com/40'
+      }
+    } else {
+      return c.json({ success: false, error: 'No id_token provided' }, 400)
     }
 
     // Check if user exists
     const existingUser = await c.env.DB
       .prepare('SELECT * FROM users WHERE email = ?')
-      .bind(mockGoogleUser.email)
+      .bind(googleUser.email)
       .first() as User | null
 
     let user: User
-    
+
     if (existingUser) {
-      // Update existing user
       user = existingUser
       await c.env.DB
         .prepare(`
           UPDATE users 
-          SET name = ?, avatar_url = ?, updated_at = CURRENT_TIMESTAMP 
+          SET google_id = ?, name = ?, avatar_url = ?, updated_at = CURRENT_TIMESTAMP 
           WHERE id = ?
         `)
-        .bind(mockGoogleUser.name, mockGoogleUser.avatar_url, existingUser.id)
+        .bind(googleUser.google_id, googleUser.name, googleUser.avatar_url, existingUser.id)
         .run()
     } else {
-      // Create new user
       const result = await c.env.DB
         .prepare(`
           INSERT INTO users (google_id, email, name, avatar_url) 
           VALUES (?, ?, ?, ?)
         `)
         .bind(
-          mockGoogleUser.google_id,
-          mockGoogleUser.email,
-          mockGoogleUser.name,
-          mockGoogleUser.avatar_url
+          googleUser.google_id,
+          googleUser.email,
+          googleUser.name,
+          googleUser.avatar_url
         )
         .run()
 
@@ -57,10 +97,10 @@ authRoutes.post('/google', async (c) => {
 
       user = {
         id: result.meta.last_row_id as number,
-        google_id: mockGoogleUser.google_id,
-        email: mockGoogleUser.email,
-        name: mockGoogleUser.name,
-        avatar_url: mockGoogleUser.avatar_url,
+        google_id: googleUser.google_id,
+        email: googleUser.email,
+        name: googleUser.name,
+        avatar_url: googleUser.avatar_url,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       }

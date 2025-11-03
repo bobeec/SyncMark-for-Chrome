@@ -11,7 +11,9 @@ class SyncMarkOptions {
       floatingButton: true,
       autoDetection: true,
       notificationStyle: 'toast',
-      apiUrl: 'http://localhost:3000/api'
+      apiUrl: 'http://localhost:3000/api',
+      // Google OAuth client ID for extension (optional)
+      googleClientId: ''
     }
     
     this.currentSettings = { ...this.defaultSettings }
@@ -38,11 +40,13 @@ class SyncMarkOptions {
     try {
       const result = await chrome.storage.local.get([
         'syncmark_settings',
-        'syncmark_language'
+        'syncmark_language',
+        'google_client_id'
       ])
       
       const savedSettings = result.syncmark_settings || {}
       const savedLanguage = result.syncmark_language
+  const savedGoogleClientId = result.google_client_id
       
       this.currentSettings = {
         ...this.defaultSettings,
@@ -52,6 +56,11 @@ class SyncMarkOptions {
       // Override language if separately saved
       if (savedLanguage) {
         this.currentSettings.language = savedLanguage
+      }
+
+      // Override google client id if separately saved
+      if (savedGoogleClientId) {
+        this.currentSettings.googleClientId = savedGoogleClientId
       }
       
       console.log('Loaded settings:', this.currentSettings)
@@ -64,7 +73,8 @@ class SyncMarkOptions {
     try {
       await chrome.storage.local.set({
         syncmark_settings: this.currentSettings,
-        syncmark_language: this.currentSettings.language
+        syncmark_language: this.currentSettings.language,
+        google_client_id: this.currentSettings.googleClientId || ''
       })
       
       // Notify background script of settings change
@@ -142,6 +152,14 @@ class SyncMarkOptions {
     if (apiUrlInput) {
       apiUrlInput.addEventListener('blur', (e) => {
         this.currentSettings.apiUrl = e.target.value.trim()
+      })
+    }
+
+    // Google Client ID input
+    const googleClientIdInput = document.getElementById('google-client-id-input')
+    if (googleClientIdInput) {
+      googleClientIdInput.addEventListener('blur', (e) => {
+        this.currentSettings.googleClientId = e.target.value.trim()
       })
     }
 
@@ -229,6 +247,12 @@ class SyncMarkOptions {
     const apiUrlInput = document.getElementById('api-url-input')
     if (apiUrlInput) {
       apiUrlInput.value = this.currentSettings.apiUrl
+    }
+
+    // Update Google client ID input
+    const googleClientIdInput = document.getElementById('google-client-id-input')
+    if (googleClientIdInput) {
+      googleClientIdInput.value = this.currentSettings.googleClientId || ''
     }
   }
 
